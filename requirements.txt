@@ -1,0 +1,36 @@
+# MCP Apps - POC Requirements
+# Python >= 3.14
+
+# Core MCP SDK
+mcp>=1.27.1
+
+# System utilities (for health check tool)
+psutil>=7.2.2
+
+# HTTP client (for future SSE transport and web integration)
+httpx>=0.28.1
+httpx-sse>=0.4.3
+
+# Async support
+anyio>=4.13.0
+
+# Data validation and serialization
+pydantic>=2.13.4
+
+# JSON schema validation (used by MCP internally)
+jsonschema>=4.26.0
+
+# Additional utilities for Day 2 enterprise tools
+# (Uncomment when implementing enterprise use cases)
+# numpy>=1.26.0          # For data processing
+# pandas>=2.1.0          # For structured data manipulation
+# networkx>=3.2.0        # For knowledge graph processing
+
+# SSE Transport dependencies (Day 2 Block 3)
+uvicorn>=0.34.0
+starlette>=0.45.0
+sse-starlette>=2.2.1
+
+# CosmosDB Gremlin API (Day 2 Block 3 - Live Data)
+gremlinpython>=3.7.2
+python-dotenv>=1.0.0

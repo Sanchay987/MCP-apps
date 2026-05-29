@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Risk Wizard — KPMG MCP Apps</title>
+<style>
+  :root {
+    --bg:      #0d1b2a;
+    --panel:   #1a2e45;
+    --card:    #1e3550;
+    --border:  #2a4060;
+    --teal:    #00b4d8;
+    --teal2:   #0096c7;
+    --text:    #e8f4fd;
+    --sub:     #7fb3d3;
+    --green:   #27ae60;
+    --amber:   #f2994a;
+    --red:     #e05252;
+    --step-done:   #27ae60;
+    --step-active: #00b4d8;
+    --step-todo:   #2a4060;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  /* ---- Header ---- */
+  .header {
+    padding: 12px 20px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--teal); box-shadow: 0 0 6px var(--teal); }
+  .header h1 { font-size: 13px; color: var(--sub); letter-spacing: 1px; text-transform: uppercase; }
+  /* ---- Progress bar ---- */
+  .progress {
+    display: flex;
+    align-items: center;
+    padding: 14px 20px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    gap: 0;
+    flex-shrink: 0;
+  }
+  .step-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    flex: 1;
+  }
+  .step-item:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    top: 14px;
+    left: 50%;
+    width: 100%;
+    height: 2px;
+    background: var(--step-todo);
+    z-index: 0;
+  }
+  .step-item.done::after  { background: var(--step-done); }
+  .step-circle {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: var(--step-todo);
+    color: var(--sub);
+    font-size: 12px;
+    font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    z-index: 1;
+    transition: all 0.3s;
+  }
+  .step-item.done   .step-circle { background: var(--step-done);   color: #fff; }
+  .step-item.active .step-circle { background: var(--step-active); color: #fff; box-shadow: 0 0 10px var(--teal); }
+  .step-label {
+    font-size: 10px;
+    color: var(--sub);
+    margin-top: 4px;
+    text-align: center;
+    white-space: nowrap;
+  }
+  .step-item.active .step-label { color: var(--teal); }
+  .step-item.done   .step-label { color: var(--step-done); }
+  /* ---- Content area ---- */
+  .content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+  }
+  .step-title  { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
+  .step-sub    { font-size: 13px; color: var(--sub); margin-bottom: 20px; }
+  /* ---- Option cards ---- */
+  .options { display: flex; flex-direction: column; gap: 10px; }
+  .opt-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 18px;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .opt-card:hover  { border-color: var(--teal); background: #1e3d58; }
+  .opt-card.picked { border-color: var(--teal); background: #0e2a44; box-shadow: 0 0 0 1px var(--teal); }
+  .opt-label { font-size: 15px; font-weight: 600; }
+  .opt-desc  { font-size: 12px; color: var(--sub); }
+  /* ---- Checkboxes (step 3) ---- */
+  .checks { display: flex; flex-direction: column; gap: 8px; }
+  .chk-item {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .chk-item:hover { border-color: var(--teal); }
+  .chk-item.checked { border-color: var(--teal); background: #0e2a44; }
+  .chk-box {
+    width: 18px; height: 18px;
+    border: 2px solid var(--border);
+    border-radius: 4px;
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s;
+  }
+  .chk-item.checked .chk-box { background: var(--teal); border-color: var(--teal); }
+  .chk-tick { color: #fff; font-size: 12px; display: none; }
+  .chk-item.checked .chk-tick { display: block; }
+  .chk-label { font-size: 14px; flex: 1; }
+  .chk-weight { font-size: 11px; color: var(--sub); }
+  /* ---- Risk score (step 4) ---- */
+  .score-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+    margin-bottom: 16px;
+  }
+  .score-label { font-size: 12px; color: var(--sub); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+  .score-badge {
+    display: inline-block;
+    padding: 8px 32px;
+    border-radius: 30px;
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    margin-bottom: 8px;
+  }
+  .score-badge.HIGH   { background: rgba(224,82,82,0.2);   color: var(--red);   border: 2px solid var(--red); }
+  .score-badge.MEDIUM { background: rgba(242,153,74,0.2);  color: var(--amber); border: 2px solid var(--amber); }
+  .score-badge.LOW    { background: rgba(39,174,96,0.2);   color: var(--green); border: 2px solid var(--green); }
+  .score-num { font-size: 13px; color: var(--sub); }
+  .rationale { font-size: 13px; color: var(--sub); line-height: 1.6; margin-top: 10px; }
+  .factors-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+  .factor-tag {
+    padding: 3px 10px;
+    background: #1e3050;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    font-size: 11px;
+    color: var(--sub);
+  }
+  /* ---- Summary rows (step 4) ---- */
+  .summary-grid { display: flex; flex-direction: column; gap: 8px; }
+  .sum-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background: var(--card);
+    border-radius: 6px;
+    font-size: 13px;
+  }
+  .sum-key { color: var(--sub); }
+  .sum-val { font-weight: 600; }
+  /* ---- Confirm (step 5) ---- */
+  .confirm-card {
+    text-align: center;
+    padding: 30px 20px;
+  }
+  .confirm-icon { font-size: 48px; margin-bottom: 12px; }
+  .confirm-title { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
+  .confirm-msg   { font-size: 14px; color: var(--sub); line-height: 1.7; }
+  /* ---- Footer buttons ---- */
+  .footer {
+    display: flex;
+    gap: 10px;
+    padding: 14px 20px;
+    border-top: 1px solid var(--border);
+    background: var(--panel);
+    flex-shrink: 0;
+  }
+  .btn {
+    flex: 1;
+    padding: 11px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn-primary   { background: var(--teal2); color: #fff; }
+  .btn-primary:hover { background: var(--teal); }
+  .btn-secondary { background: #1e3050; color: var(--sub); border: 1px solid var(--border); }
+  .btn-secondary:hover { background: var(--border); color: var(--text); }
+  .btn-danger    { background: rgba(224,82,82,0.15); color: var(--red); border: 1px solid var(--red); }
+  .btn-danger:hover { background: rgba(224,82,82,0.3); }
+  .btn:disabled  { opacity: 0.4; cursor: not-allowed; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="dot"></div>
+  <h1>Risk Assessment Wizard</h1>
+</div>
+
+<div class="progress" id="progress-bar">
+  <!-- Rendered by JS -->
+</div>
+
+<div class="content" id="content">
+  <!-- Rendered by JS -->
+</div>
+
+<div class="footer" id="footer">
+  <!-- Rendered by JS -->
+</div>
+
+<script>
+  // ---------------------------------------------------------------------------
+  // State
+  // ---------------------------------------------------------------------------
+  const STEPS = ['Client', 'Engagement', 'Risk Factors', 'Assessment', 'Confirm'];
+
+  let state = {
+    step: 1,
+    client: null,
+    engagement: null,
+    riskFactors: [],
+    decision: null,
+    // Populated from toolResult
+    clients: [],
+    engagementTypes: [],
+    riskFactorDefs: [],
+  };
+
+  // Default data (used until toolResult arrives)
+  const DEFAULT = {
+    clients: [
+      {id:'techcorp',   label:'TechCorp',   description:'Audit engagement — FY26 Q2'},
+      {id:'acme',       label:'Acme Ltd',   description:'Tax advisory — FY26 Q1'},
+      {id:'globalbank', label:'GlobalBank', description:'Advisory — Risk & Controls Review'},
+    ],
+    engagementTypes: [
+      {id:'audit',    label:'Audit',    description:'Annual statutory audit and internal controls review'},
+      {id:'tax',      label:'Tax',      description:'Transfer pricing, VAT, and corporate tax advisory'},
+      {id:'advisory', label:'Advisory', description:'Risk management, strategy, and transaction services'},
+    ],
+    riskFactorDefs: [
+      {id:'revenue_recognition',       label:'Revenue recognition issues',       weight:3},
+      {id:'related_party',             label:'Related-party transactions',        weight:3},
+      {id:'going_concern',             label:'Going-concern indicators',          weight:4},
+      {id:'it_controls',               label:'Weak IT / access controls',         weight:2},
+      {id:'regulatory_non_compliance', label:'Regulatory non-compliance history', weight:3},
+      {id:'high_complexity',           label:'High transaction complexity',       weight:2},
+    ],
+  };
+
+  // ---------------------------------------------------------------------------
+  // Render
+  // ---------------------------------------------------------------------------
+  function render() {
+    renderProgress();
+    renderContent();
+    renderFooter();
+  }
+
+  function renderProgress() {
+    const bar = document.getElementById('progress-bar');
+    bar.innerHTML = STEPS.map((label, i) => {
+      const num  = i + 1;
+      const cls  = num < state.step ? 'done' : (num === state.step ? 'active' : '');
+      const tick = num < state.step ? '✓' : num;
+      return `
+        <div class="step-item ${cls}">
+          <div class="step-circle">${tick}</div>
+          <div class="step-label">${label}</div>
+        </div>`;
+    }).join('');
+  }
+
+  function renderContent() {
+    const el = document.getElementById('content');
+    if      (state.step === 1) el.innerHTML = renderStep1();
+    else if (state.step === 2) el.innerHTML = renderStep2();
+    else if (state.step === 3) el.innerHTML = renderStep3();
+    else if (state.step === 4) el.innerHTML = renderStep4();
+    else if (state.step === 5) el.innerHTML = renderStep5();
+  }
+
+  function renderFooter() {
+    const el = document.getElementById('footer');
+    if (state.step === 1) {
+      el.innerHTML = '';
+      return;
+    }
+    if (state.step === 5) {
+      el.innerHTML = `<button class="btn btn-secondary" onclick="restart()">Start New Assessment</button>`;
+      return;
+    }
+    let html = `<button class="btn btn-secondary" onclick="back()">← Back</button>`;
+    if (state.step === 3) {
+      html += `<button class="btn btn-primary" id="continue-btn" onclick="continueStep3()">Continue →</button>`;
+    }
+    if (state.step === 4) {
+      html  = `<button class="btn btn-secondary" onclick="back()">← Back</button>`;
+      html += `<button class="btn btn-danger"    onclick="decide('escalated')">Escalate to Partner</button>`;
+      html += `<button class="btn btn-primary"   onclick="decide('approved')">Approve & Finalise</button>`;
+    }
+    el.innerHTML = html;
+  }
+
+  // ---- Step renderers ----
+  function renderStep1() {
+    const opts = state.clients.map(c => `
+      <div class="opt-card" onclick="pickClient('${c.id}','${esc(c.label)}')">
+        <div class="opt-label">${c.label}</div>
+        <div class="opt-desc">${c.description}</div>
+      </div>`).join('');
+    return `
+      <div class="step-title">Select a client engagement</div>
+      <div class="step-sub">Step 1 of 5 — Choose the client for this risk assessment</div>
+      <div class="options">${opts}</div>`;
+  }
+
+  function renderStep2() {
+    const opts = state.engagementTypes.map(e => `
+      <div class="opt-card" onclick="pickEngagement('${e.id}','${esc(e.label)}')">
+        <div class="opt-label">${e.label}</div>
+        <div class="opt-desc">${e.description}</div>
+      </div>`).join('');
+    return `
+      <div class="step-title">Select engagement type</div>
+      <div class="step-sub">Step 2 of 5 — ${state.client.label}</div>
+      <div class="options">${opts}</div>`;
+  }
+
+  function renderStep3() {
+    const items = state.riskFactorDefs.map(f => {
+      const checked = state.riskFactors.includes(f.id) ? 'checked' : '';
+      return `
+        <div class="chk-item ${checked}" id="chk-${f.id}" onclick="toggleFactor('${f.id}')">
+          <div class="chk-box"><span class="chk-tick">✓</span></div>
+          <div class="chk-label">${f.label}</div>
+          <div class="chk-weight">Weight: ${f.weight}</div>
+        </div>`;
+    }).join('');
+    return `
+      <div class="step-title">Identify risk factors</div>
+      <div class="step-sub">Step 3 of 5 — Select all factors that apply to ${state.client.label} / ${state.engagement.label}</div>
+      <div class="checks">${items}</div>`;
+  }
+
+  function renderStep4() {
+    const weights = {};
+    state.riskFactorDefs.forEach(f => weights[f.id] = f.weight);
+    const score  = state.riskFactors.reduce((s, id) => s + (weights[id] || 1), 0);
+    const rating = score >= 10 ? 'HIGH' : score >= 5 ? 'MEDIUM' : 'LOW';
+    const rationale = {
+      HIGH:   'Multiple high-weight risk indicators detected. Immediate partner review required.',
+      MEDIUM: 'Moderate risk profile. Increased audit procedures recommended.',
+      LOW:    'Risk profile within acceptable tolerance. Standard procedures apply.',
+    }[rating];
+    const flagged = state.riskFactors.map(id => {
+      const f = state.riskFactorDefs.find(x => x.id === id);
+      return f ? `<span class="factor-tag">${f.label}</span>` : '';
+    }).join('');
+    state._score  = score;
+    state._rating = rating;
+    return `
+      <div class="step-title">Risk Assessment Summary</div>
+      <div class="step-sub">Step 4 of 5 — Review and approve</div>
+      <div class="score-card">
+        <div class="score-label">Overall Risk Rating</div>
+        <div class="score-badge ${rating}">${rating}</div>
+        <div class="score-num">Score: ${score} / 17</div>
+        <div class="rationale">${rationale}</div>
+        ${flagged ? `<div class="factors-list">${flagged}</div>` : ''}
+      </div>
+      <div class="summary-grid">
+        <div class="sum-row"><span class="sum-key">Client</span>     <span class="sum-val">${state.client.label}</span></div>
+        <div class="sum-row"><span class="sum-key">Engagement</span> <span class="sum-val">${state.engagement.label}</span></div>
+        <div class="sum-row"><span class="sum-key">Risk Factors</span><span class="sum-val">${state.riskFactors.length} selected</span></div>
+        <div class="sum-row"><span class="sum-key">Score</span>       <span class="sum-val">${score}</span></div>
+      </div>`;
+  }
+
+  function renderStep5() {
+    const approved = state.decision === 'approved';
+    const icon     = approved ? '✅' : 'ℹ️';
+    const title    = approved ? 'Assessment Finalised' : 'Escalated for Partner Review';
+    const msg      = approved
+      ? `The ${state._rating} risk assessment for ${state.client.label} has been approved and logged. A PDF report will be generated within 24 hours.`
+      : `The ${state._rating} risk assessment for ${state.client.label} has been sent to the senior partner queue. Expect a response within 2 business days.`;
+    return `
+      <div class="confirm-card">
+        <div class="confirm-icon">${icon}</div>
+        <div class="confirm-title">${title}</div>
+        <div class="confirm-msg">${msg}</div>
+      </div>`;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Actions
+  // ---------------------------------------------------------------------------
+  function pickClient(id, label) {
+    state.client    = {id, label};
+    state.step      = 2;
+    render();
+  }
+
+  function pickEngagement(id, label) {
+    state.engagement = {id, label};
+    state.step       = 3;
+    render();
+  }
+
+  function toggleFactor(id) {
+    const el = document.getElementById(`chk-${id}`);
+    if (state.riskFactors.includes(id)) {
+      state.riskFactors = state.riskFactors.filter(x => x !== id);
+      el.classList.remove('checked');
+    } else {
+      state.riskFactors.push(id);
+      el.classList.add('checked');
+    }
+  }
+
+  function continueStep3() {
+    state.step = 4;
+    render();
+  }
+
+  function decide(d) {
+    state.decision = d;
+    state.step     = 5;
+    render();
+
+    // Post final result back to the MCP host
+    const payload = {
+      client:      state.client,
+      engagement:  state.engagement,
+      riskFactors: state.riskFactors,
+      score:       state._score,
+      rating:      state._rating,
+      decision:    d,
+    };
+    window.parent.postMessage({ type: 'TOOL_RESULT',      payload }, '*');
+    window.parent.postMessage({ type: 'mcpui:message',    payload }, '*');
+  }
+
+  function back() {
+    if (state.step > 1) { state.step--; render(); }
+  }
+
+  function restart() {
+    state = {
+      step: 1, client: null, engagement: null, riskFactors: [], decision: null,
+      clients:          state.clients,
+      engagementTypes:  state.engagementTypes,
+      riskFactorDefs:   state.riskFactorDefs,
+    };
+    render();
+  }
+
+  function esc(s) { return s.replace(/'/g, "\\'"); }
+
+  // ---------------------------------------------------------------------------
+  // Bootstrap from toolResult delivered by AppRenderer
+  // ---------------------------------------------------------------------------
+  function initFromData(data) {
+    if (data.clients)         state.clients         = data.clients;
+    if (data.engagement_types) state.engagementTypes = data.engagement_types;
+    if (data.risk_factors)    state.riskFactorDefs  = data.risk_factors;
+    render();
+  }
+
+  window.addEventListener('message', function(e) {
+    if (!e.data) return;
+    const d = e.data;
+    if (d.type === 'TOOL_INIT' || d.type === 'mcpui:init') {
+      const result = d.toolResult || d.result;
+      if (result) {
+        try {
+          let text = result;
+          if (result.content && Array.isArray(result.content)) {
+            text = result.content.find(c => c.type === 'text')?.text || '{}';
+          }
+          initFromData(typeof text === 'string' ? JSON.parse(text) : text);
+        } catch (err) {
+          console.warn('Could not parse toolResult:', err);
+          loadDefaults();
+        }
+      } else {
+        loadDefaults();
+      }
+    }
+  });
+
+  function loadDefaults() {
+    state.clients          = DEFAULT.clients;
+    state.engagementTypes  = DEFAULT.engagementTypes;
+    state.riskFactorDefs   = DEFAULT.riskFactorDefs;
+    render();
+  }
+
+  // Auto-start with defaults so the widget works standalone / in direct preview
+  loadDefaults();
+</script>
+</body>
+</html>

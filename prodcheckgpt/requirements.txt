@@ -1,0 +1,23 @@
+# Azure GPT + MCP Testing Requirements
+
+# MCP SDK
+mcp>=1.27.1
+
+# System utilities
+psutil>=7.2.2
+
+# Azure OpenAI SDK
+openai>=1.54.0
+
+# Environment variable management
+python-dotenv>=1.0.0
+
+# Async support
+anyio>=4.13.0
+
+# Data validation
+pydantic>=2.13.4
+
+# Optional: MCP Inspector for protocol-level debugging
+# Install separately: npx @modelcontextprotocol/inspector
+# or: npm install -g @modelcontextprotocol/inspector

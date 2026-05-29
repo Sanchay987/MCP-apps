@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Calculator — KPMG MCP Apps</title>
+<style>
+  :root {
+    --bg:      #0d1b2a;
+    --surface: #1a2e45;
+    --border:  #2a4060;
+    --teal:    #00b4d8;
+    --teal2:   #0096c7;
+    --op:      #1e4080;
+    --op-h:    #2855a8;
+    --eq:      #005f99;
+    --eq-h:    #0077bb;
+    --num:     #1e3050;
+    --num-h:   #263d62;
+    --text:    #e8f4fd;
+    --sub:     #7fb3d3;
+    --red:     #e05252;
+    --green:   #3ecf8e;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+  }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px;
+    width: 100%;
+    max-width: 340px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  }
+  .header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .header-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--teal);
+    box-shadow: 0 0 8px var(--teal);
+  }
+  .header h1 { font-size: 13px; color: var(--sub); letter-spacing: 1px; text-transform: uppercase; }
+  .display {
+    background: #0a1520;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 16px;
+    margin-bottom: 12px;
+    min-height: 72px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    justify-content: flex-end;
+    gap: 4px;
+  }
+  .display .expr {
+    font-size: 12px;
+    color: var(--sub);
+    min-height: 18px;
+    word-break: break-all;
+    text-align: right;
+  }
+  .display .value {
+    font-size: 28px;
+    font-weight: 600;
+    color: var(--text);
+    word-break: break-all;
+    text-align: right;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+  }
+  button {
+    padding: 14px 8px;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.12s;
+    color: var(--text);
+  }
+  button:active { transform: scale(0.94); }
+  .btn-num  { background: var(--num); }
+  .btn-num:hover { background: var(--num-h); }
+  .btn-op   { background: var(--op); color: var(--teal); }
+  .btn-op:hover { background: var(--op-h); }
+  .btn-eq   { background: var(--eq); color: #fff; }
+  .btn-eq:hover { background: var(--eq-h); }
+  .btn-clear { background: #2a1a1a; color: var(--red); }
+  .btn-clear:hover { background: #3a2020; }
+  .btn-zero { grid-column: span 2; }
+  .footer {
+    margin-top: 14px;
+    display: flex;
+    gap: 8px;
+  }
+  .btn-submit {
+    flex: 1;
+    padding: 12px;
+    background: var(--teal2);
+    border: none;
+    border-radius: 8px;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    letter-spacing: 0.5px;
+    transition: background 0.15s;
+  }
+  .btn-submit:hover { background: var(--teal); }
+  .toast {
+    position: fixed;
+    bottom: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--green);
+    color: #0a1a10;
+    padding: 8px 20px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="header">
+    <div class="header-dot"></div>
+    <h1>MCP Calculator</h1>
+  </div>
+
+  <div class="display">
+    <div class="expr" id="expr"></div>
+    <div class="value" id="value">0</div>
+  </div>
+
+  <div class="grid">
+    <button class="btn-clear" onclick="clear_all()">AC</button>
+    <button class="btn-op"    onclick="sign()">+/−</button>
+    <button class="btn-op"    onclick="percent()">%</button>
+    <button class="btn-op"    onclick="op('/')">÷</button>
+
+    <button class="btn-num" onclick="digit('7')">7</button>
+    <button class="btn-num" onclick="digit('8')">8</button>
+    <button class="btn-num" onclick="digit('9')">9</button>
+    <button class="btn-op"  onclick="op('*')">×</button>
+
+    <button class="btn-num" onclick="digit('4')">4</button>
+    <button class="btn-num" onclick="digit('5')">5</button>
+    <button class="btn-num" onclick="digit('6')">6</button>
+    <button class="btn-op"  onclick="op('-')">−</button>
+
+    <button class="btn-num" onclick="digit('1')">1</button>
+    <button class="btn-num" onclick="digit('2')">2</button>
+    <button class="btn-num" onclick="digit('3')">3</button>
+    <button class="btn-op"  onclick="op('+')">+</button>
+
+    <button class="btn-num btn-zero" onclick="digit('0')">0</button>
+    <button class="btn-num" onclick="dot()">.</button>
+    <button class="btn-eq"  onclick="equals()">=</button>
+  </div>
+
+  <div class="footer">
+    <button class="btn-submit" onclick="submit_result()">Submit to Chat ↑</button>
+  </div>
+</div>
+
+<div class="toast" id="toast">Result sent to chat!</div>
+
+<script>
+  let current = '0';
+  let expr = '';
+  let pending_op = null;
+  let prev_val = null;
+  let just_eq = false;
+
+  function render() {
+    document.getElementById('value').textContent = current;
+    document.getElementById('expr').textContent  = expr;
+  }
+
+  function digit(d) {
+    if (just_eq) { current = '0'; expr = ''; just_eq = false; }
+    if (current === '0' && d !== '.') current = d;
+    else if (current.length < 15) current += d;
+    render();
+  }
+
+  function dot() {
+    if (just_eq) { current = '0'; expr = ''; just_eq = false; }
+    if (!current.includes('.')) current += '.';
+    render();
+  }
+
+  function op(o) {
+    just_eq = false;
+    if (prev_val !== null) {
+      const res = compute(prev_val, parseFloat(current), pending_op);
+      current = String(res);
+    }
+    prev_val   = parseFloat(current);
+    pending_op = o;
+    const sym  = {'+':'+', '-':'−', '*':'×', '/':'÷'}[o] || o;
+    expr       = current + ' ' + sym;
+    current    = '0';
+    render();
+  }
+
+  function equals() {
+    if (pending_op === null) return;
+    const res  = compute(prev_val, parseFloat(current), pending_op);
+    expr       = expr + ' ' + current + ' =';
+    current    = String(res);
+    prev_val   = null;
+    pending_op = null;
+    just_eq    = true;
+    render();
+  }
+
+  function compute(a, b, o) {
+    if (o === '+') return round(a + b);
+    if (o === '-') return round(a - b);
+    if (o === '*') return round(a * b);
+    if (o === '/') return b !== 0 ? round(a / b) : 'Error';
+    return b;
+  }
+
+  function round(n) {
+    return Math.round(n * 1e10) / 1e10;
+  }
+
+  function clear_all() {
+    current = '0'; expr = ''; prev_val = null; pending_op = null; just_eq = false;
+    render();
+  }
+
+  function sign()    { current = String(-parseFloat(current) || 0); render(); }
+  function percent() { current = String(parseFloat(current) / 100); render(); }
+
+  function submit_result() {
+    const result = current;
+    const message = expr ? `${expr} ${result}`.trim() : result;
+    window.parent.postMessage({ type: 'TOOL_RESULT', result, expression: message }, '*');
+    window.parent.postMessage({ type: 'mcpui:message', payload: { result, expression: message } }, '*');
+    const t = document.getElementById('toast');
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2000);
+  }
+
+  // Accept initial expression from AppRenderer / host
+  window.addEventListener('message', function(e) {
+    const d = e.data;
+    if (!d) return;
+    // AppRenderer sends TOOL_INIT with toolInput
+    if (d.type === 'TOOL_INIT' || d.type === 'mcpui:init') {
+      const input = d.toolInput || d.input || {};
+      if (input.initial) {
+        try {
+          const val = eval(input.initial); // safe: only called with our own data
+          current = String(val);
+          expr = input.initial + ' =';
+          render();
+        } catch(e) { /* ignore */ }
+      }
+    }
+  });
+
+  render();
+</script>
+</body>
+</html>

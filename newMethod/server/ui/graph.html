@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Regulatory Graph — KPMG MCP Apps</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.29.2/cytoscape.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0d1b2a; --panel:#1a2e45; --card:#162438;
+  --border:#2a4060; --teal:#00b4d8; --text:#e8f4fd; --sub:#7fb3d3;
+  --c-br:#3b9ede; --c-ob:#f59e42; --c-pr:#3ecf8e; --c-ct:#b06de8; --c-def:#8899aa;
+}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;overflow:hidden}
+
+/* ── top bar ── */
+.topbar{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:10px 16px;background:var(--panel);border-bottom:1px solid var(--border);
+  flex-shrink:0;height:46px;
+}
+.topbar-left{display:flex;align-items:center;gap:8px}
+.glow-dot{width:9px;height:9px;border-radius:50%;background:var(--teal);box-shadow:0 0 8px var(--teal),0 0 16px rgba(0,180,216,.4)}
+.topbar h1{font-size:13px;color:var(--sub);text-transform:uppercase;letter-spacing:1.5px;font-weight:600}
+.stats-pill{
+  display:flex;gap:14px;font-size:11px;color:var(--sub);
+  background:rgba(0,0,0,.3);padding:4px 14px;border-radius:20px;border:1px solid var(--border);
+}
+.stat-item{display:flex;align-items:center;gap:5px}
+.stat-num{color:var(--teal);font-weight:700}
+
+/* ── legend ── */
+.legend{
+  display:flex;align-items:center;gap:14px;
+  padding:7px 16px;background:rgba(26,46,69,.7);border-bottom:1px solid var(--border);
+  flex-wrap:wrap;flex-shrink:0;
+}
+.leg{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--sub);cursor:pointer;
+     padding:2px 8px;border-radius:12px;transition:background .15s}
+.leg:hover{background:rgba(255,255,255,.06)}
+.leg.active{background:rgba(255,255,255,.1);color:var(--text)}
+.leg-dot{width:11px;height:11px;border-radius:50%;flex-shrink:0}
+.leg-count{font-size:10px;opacity:.6}
+
+/* ── main area ── */
+.main{display:flex;flex:1;height:calc(100vh - 46px - 38px);position:relative}
+#cy{flex:1;height:100%}
+
+/* ── detail panel ── */
+.detail{
+  width:0;height:100%;background:var(--panel);border-left:1px solid var(--border);
+  overflow:hidden;display:flex;flex-direction:column;
+  transition:width .25s cubic-bezier(.4,0,.2,1);flex-shrink:0;
+}
+.detail.open{width:300px}
+.detail-inner{width:300px;padding:18px 16px;display:flex;flex-direction:column;gap:14px;overflow-y:auto;height:100%}
+.detail-close{
+  position:absolute;top:10px;right:10px;
+  background:rgba(0,0,0,.4);border:1px solid var(--border);
+  color:var(--sub);width:26px;height:26px;border-radius:6px;
+  cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;
+  transition:all .15s;
+}
+.detail-close:hover{background:var(--border);color:var(--text)}
+.detail-section{font-size:10px;color:var(--teal);text-transform:uppercase;letter-spacing:1px;font-weight:700;margin-bottom:2px}
+.node-title{font-size:17px;font-weight:700;line-height:1.3;color:var(--text)}
+.type-badge{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;
+}
+.node-desc{font-size:13px;color:var(--sub);line-height:1.7}
+.prop-grid{display:grid;grid-template-columns:auto 1fr;gap:4px 10px}
+.prop-k{font-size:11px;color:var(--teal);white-space:nowrap}
+.prop-v{font-size:12px;color:var(--text);word-break:break-word}
+.edge-list{display:flex;flex-direction:column;gap:6px}
+.edge-item{
+  background:rgba(0,0,0,.25);border:1px solid var(--border);
+  border-radius:8px;padding:8px 10px;font-size:12px;color:var(--sub);
+}
+.edge-rel{font-size:11px;color:var(--teal);font-weight:600;margin-bottom:3px}
+.edge-dir{font-size:10px;opacity:.6}
+
+/* ── floating controls ── */
+.controls{
+  position:absolute;bottom:16px;left:16px;
+  display:flex;flex-direction:column;gap:6px;z-index:10;
+}
+.ctrl{
+  width:34px;height:34px;border-radius:8px;
+  background:rgba(26,46,69,.9);border:1px solid var(--border);
+  color:var(--sub);cursor:pointer;font-size:15px;
+  display:flex;align-items:center;justify-content:center;
+  transition:all .15s;backdrop-filter:blur(4px);
+}
+.ctrl:hover{background:var(--border);color:var(--text)}
+
+/* ── loading overlay ── */
+.loader{
+  position:absolute;inset:0;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;
+  background:var(--bg);z-index:20;
+}
+.spinner{
+  width:38px;height:38px;
+  border:3px solid var(--border);border-top-color:var(--teal);
+  border-radius:50%;animation:spin .8s linear infinite;
+}
+.loader p{color:var(--sub);font-size:14px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* tooltip on hover */
+.tooltip{
+  position:absolute;background:rgba(10,20,35,.95);border:1px solid var(--border);
+  border-radius:8px;padding:8px 12px;font-size:12px;color:var(--text);
+  pointer-events:none;z-index:30;display:none;max-width:220px;line-height:1.5;
+  box-shadow:0 4px 20px rgba(0,0,0,.6);
+}
+.tooltip.show{display:block}
+.tooltip-title{font-weight:700;color:var(--teal);margin-bottom:3px}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-left">
+    <div class="glow-dot"></div>
+    <h1>Regulatory Policy Graph</h1>
+  </div>
+  <div class="stats-pill">
+    <div class="stat-item"><span class="stat-num" id="s-nodes">—</span> nodes</div>
+    <div class="stat-item"><span class="stat-num" id="s-edges">—</span> edges</div>
+    <div class="stat-item" id="s-src" style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></div>
+  </div>
+</div>
+
+<div class="legend" id="legend"></div>
+
+<div class="main">
+  <div id="cy">
+    <div class="loader" id="loader">
+      <div class="spinner"></div>
+      <p id="loader-msg">Waiting for graph data…</p>
+    </div>
+  </div>
+
+  <!-- Node detail panel -->
+  <div class="detail" id="detail">
+    <div class="detail-inner" id="detail-inner"></div>
+  </div>
+</div>
+
+<!-- floating zoom controls -->
+<div class="controls">
+  <button class="ctrl" title="Zoom in"  onclick="if(cy)cy.zoom({level:cy.zoom()*1.3,renderedPosition:{x:cy.width()/2,y:cy.height()/2}})">+</button>
+  <button class="ctrl" title="Zoom out" onclick="if(cy)cy.zoom({level:cy.zoom()*.75,renderedPosition:{x:cy.width()/2,y:cy.height()/2}})">−</button>
+  <button class="ctrl" title="Fit all"  onclick="if(cy)cy.animate({fit:{padding:50},duration:350})">⊡</button>
+  <button class="ctrl" title="Close panel" onclick="closeDetail()" id="close-btn" style="display:none">✕</button>
+</div>
+
+<!-- hover tooltip -->
+<div class="tooltip" id="tooltip">
+  <div class="tooltip-title" id="tt-title"></div>
+  <div id="tt-body"></div>
+</div>
+
+<script>
+const COLORS = {
+  BusinessRules:'#3b9ede', Obligations:'#f59e42',
+  Processes:'#3ecf8e',     Controls:'#b06de8',
+  default:'#8899aa'
+};
+
+function colorFor(t){ return COLORS[t]||COLORS.default; }
+function contrastFor(hex){
+  const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
+  return (r*0.299+g*0.587+b*0.114)>150?'#0d1b2a':'#fff';
+}
+
+let cy = null;
+let allData = null;
+let activeFilter = null;
+
+// ── Build legend ───────────────────────────────────────────────────────────────
+function buildLegend(nodes){
+  const counts = {};
+  nodes.forEach(n=>{ const t=n.data.type||'Unknown'; counts[t]=(counts[t]||0)+1; });
+  const legend = document.getElementById('legend');
+  legend.innerHTML = Object.entries(counts).map(([t,c])=>`
+    <div class="leg" data-type="${t}" onclick="filterType('${t}')">
+      <div class="leg-dot" style="background:${colorFor(t)}"></div>
+      <span>${t}</span>
+      <span class="leg-count">${c}</span>
+    </div>`).join('') +
+    `<div class="leg active" data-type="" onclick="filterType(null)" style="margin-left:auto">
+      All nodes
+    </div>`;
+}
+
+// ── Filter by type ─────────────────────────────────────────────────────────────
+function filterType(type){
+  if(!cy) return;
+  activeFilter = type;
+  document.querySelectorAll('.leg').forEach(el=>{
+    el.classList.toggle('active', el.dataset.type === (type||''));
+  });
+  if(!type){
+    cy.elements().removeClass('faded'); cy.elements().style({'opacity':1});
+  } else {
+    cy.nodes().forEach(n=>{
+      const match = n.data('type')===type;
+      n.style('opacity', match?1:0.15);
+      n.connectedEdges().style('opacity', match?0.7:0.1);
+    });
+  }
+}
+
+// ── Build graph ────────────────────────────────────────────────────────────────
+function buildGraph(data){
+  document.getElementById('loader').style.display='none';
+  allData = data;
+
+  const nodes = (data.nodes||[]).map(n=>({
+    data:{
+      id:    n.id,
+      label: (n.label||n.id).replace(/_/g,' '),
+      type:  n.type||'Unknown',
+      desc:  n.description||'',          // fixed: was n.desc (wrong field)
+      props: n.properties||{},
+      raw:   n,                          // store entire node for full detail view
+      color: colorFor(n.type),
+    }
+  }));
+
+  const edges = (data.edges||[]).map((e,i)=>({
+    data:{
+      id:`e${i}`,source:e.source,target:e.target,
+      rel:e.relationship||'RELATED',
+      props:e.properties||{},
+    }
+  }));
+
+  // stats bar
+  document.getElementById('s-nodes').textContent = nodes.length;
+  document.getElementById('s-edges').textContent = edges.length;
+  const src = data.metadata?.source||'';
+  document.getElementById('s-src').textContent = src;
+
+  buildLegend(nodes);
+
+  cy = cytoscape({
+    container: document.getElementById('cy'),
+    elements:  { nodes, edges },
+    style: [
+      {
+        selector:'node',
+        style:{
+          'background-color':       'data(color)',
+          'label':                  'data(label)',
+          'color':                  '#e8f4fd',
+          'font-size':              '11px',
+          'font-weight':            '600',
+          'text-valign':            'bottom',
+          'text-halign':            'center',
+          'text-margin-y':          '8px',
+          'text-wrap':              'wrap',
+          'text-max-width':         '110px',
+          'width':                  '52px',
+          'height':                 '52px',
+          'border-width':           3,
+          'border-color':           'rgba(0,0,0,.5)',
+          'box-shadow':             '0 0 0 0 transparent',
+          'transition-property':    'border-color, width, height, opacity',
+          'transition-duration':    '0.15s',
+        }
+      },
+      {
+        selector:'node:hover',
+        style:{
+          'border-color': '#00b4d8',
+          'border-width':  4,
+          'width':  '58px',
+          'height': '58px',
+          'z-index': 10,
+        }
+      },
+      {
+        selector:'node:selected',
+        style:{
+          'border-color': '#ffffff',
+          'border-width':  4,
+          'width':  '62px',
+          'height': '62px',
+          'z-index': 20,
+        }
+      },
+      {
+        selector:'edge',
+        style:{
+          'width':                2,
+          'line-color':           '#2a4a6a',
+          'target-arrow-color':   '#2a4a6a',
+          'target-arrow-shape':   'triangle',
+          'curve-style':          'bezier',
+          'label':                'data(rel)',
+          'font-size':            '9px',
+          'color':                '#7fb3d3',
+          'text-background-color':'#0d1b2a',
+          'text-background-opacity': 0.9,
+          'text-background-padding': '2px',
+          'text-rotation':        'autorotate',
+          'opacity':              0.7,
+        }
+      },
+      {
+        selector:'edge:hover',
+        style:{
+          'line-color':         '#00b4d8',
+          'target-arrow-color': '#00b4d8',
+          'width': 3,
+          'opacity': 1,
+        }
+      },
+      {
+        selector:'edge:selected',
+        style:{
+          'line-color':         '#00b4d8',
+          'target-arrow-color': '#00b4d8',
+          'width': 3,
+          'opacity': 1,
+        }
+      },
+    ],
+    layout:{
+      name:               'cose',
+      animate:            true,
+      animationDuration:  800,
+      animationEasing:    'ease-out',
+      randomize:          true,
+      componentSpacing:   120,
+      nodeRepulsion:      function(){ return 550000; },
+      nodeOverlap:        30,
+      idealEdgeLength:    function(){ return 160; },
+      edgeElasticity:     function(){ return 100; },
+      nestingFactor:      1.2,
+      gravity:            0.25,
+      numIter:            1000,
+      initialTemp:        1000,
+      coolingFactor:      0.99,
+      minTemp:            1.0,
+      padding:            60,
+    },
+    wheelSensitivity: 0.15,
+    minZoom: 0.2,
+    maxZoom: 4,
+  });
+
+  // ── tooltip on hover ──────────────────────────────────────────────────────
+  const tooltip = document.getElementById('tooltip');
+  const ttTitle = document.getElementById('tt-title');
+  const ttBody  = document.getElementById('tt-body');
+
+  cy.on('mouseover', 'node', function(evt){
+    const n = evt.target.data();
+    ttTitle.textContent = n.label;
+    ttBody.textContent  = n.desc || n.type;
+    tooltip.classList.add('show');
+  });
+  cy.on('mousemove', 'node', function(evt){
+    const rp = evt.renderedPosition;
+    const container = document.getElementById('cy').getBoundingClientRect();
+    tooltip.style.left = (container.left + rp.x + 16) + 'px';
+    tooltip.style.top  = (container.top  + rp.y - 16) + 'px';
+  });
+  cy.on('mouseout', 'node', ()=> tooltip.classList.remove('show'));
+
+  // ── click node → detail panel ──────────────────────────────────────────────
+  cy.on('tap', 'node', function(evt){
+    tooltip.classList.remove('show');
+    showDetail(evt.target);
+  });
+
+  cy.on('tap', 'edge', function(evt){
+    tooltip.classList.remove('show');
+    showEdgeDetail(evt.target);
+  });
+
+  // click background → close panel
+  cy.on('tap', function(evt){
+    if(evt.target === cy){ closeDetail(); cy.elements().unselect(); }
+  });
+}
+
+// ── Node detail panel ─────────────────────────────────────────────────────────
+function showDetail(node){
+  const d   = node.data();
+  const raw = d.raw || {};          // full original node from Cosmos
+  const col = colorFor(d.type);
+
+  // Connections
+  const incoming = node.incomers('edge').map(e=>({rel:e.data('rel'),other:e.source().data('label'),dir:'in'}));
+  const outgoing = node.outgoers('edge').map(e=>({rel:e.data('rel'),other:e.target().data('label'),dir:'out'}));
+  const allEdges = [...incoming,...outgoing];
+
+  // All properties from Cosmos — show EVERYTHING, skip only cytoscape internals
+  const skipKeys = new Set(['id','label','type','desc','props','raw','color']);
+  const allProps = Object.entries(d.props||{}).filter(([k])=> !skipKeys.has(k));
+
+  // Cosmos-specific attribute keys we want to display with nicer labels
+  const attrLabels = {
+    what:'What',why:'Why',who:'Who',where:'Where',when:'When',how:'How',
+    category:'Category',entity_type:'Entity Type',domain:'Domain',
+    jurisdiction:'Jurisdiction',risk_level:'Risk Level',
+    document_source:'Document',source_page:'Page',
+    link_strength:'Link Strength',link_explanation:'Explanation',
+  };
+
+  function esc(s){ return String(s).replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function prettyKey(k){ return attrLabels[k] || k.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase()); }
+
+  // ── Header ──
+  let html = `
+    <div class="detail-section">Node</div>
+    <div class="node-title">${esc(d.label)}</div>
+    <div style="margin-top:4px">
+      <span class="type-badge" style="background:${col}22;color:${col};border:1px solid ${col}55">
+        <span style="width:7px;height:7px;border-radius:50%;background:${col};display:inline-block;flex-shrink:0"></span>
+        ${esc(d.type)}
+      </span>
+    </div>`;
+
+  // ── ID ──
+  html += `
+    <div style="padding:6px 10px;background:rgba(0,0,0,.3);border-radius:6px;font-size:11px;
+                color:var(--sub);font-family:monospace;word-break:break-all">
+      ID: ${esc(d.id)}
+    </div>`;
+
+  // ── Description ──
+  if(d.desc && d.desc !== 'No description'){
+    html += `
+      <div>
+        <div class="detail-section">Description</div>
+        <div class="node-desc">${esc(d.desc)}</div>
+      </div>`;
+  }
+
+  // ── All properties from Cosmos DB ──
+  if(allProps.length){
+    html += `<div><div class="detail-section">Cosmos DB Properties</div><div class="prop-grid">`;
+    allProps.forEach(([k,v])=>{
+      if(v === null || v === undefined || v === '') return;
+      html += `
+        <div class="prop-k">${prettyKey(k)}</div>
+        <div class="prop-v">${esc(String(v))}</div>`;
+    });
+    html += `</div></div>`;
+  }
+
+  // ── Connections ──
+  if(allEdges.length){
+    html += `<div><div class="detail-section">Connections (${allEdges.length})</div><div class="edge-list">`;
+    allEdges.forEach(e=>{
+      const arrow = e.dir==='out' ? '→' : '←';
+      const edgeCol = e.dir==='out'?'#3b9ede':'#f59e42';
+      html += `
+        <div class="edge-item" style="border-left:3px solid ${edgeCol}">
+          <div class="edge-rel" style="color:${edgeCol}">${esc(e.rel)}</div>
+          <div class="edge-dir">${arrow} <span style="color:var(--text)">${esc(e.other)}</span></div>
+        </div>`;
+    });
+    html += `</div></div>`;
+  } else {
+    html += `<div style="font-size:12px;color:var(--sub);font-style:italic">No direct connections in current view</div>`;
+  }
+
+  // ── Raw JSON toggle ──
+  const rawJson = JSON.stringify(raw, null, 2);
+  html += `
+    <div>
+      <div class="detail-section" style="cursor:pointer" onclick="
+        const el=document.getElementById('raw-json');
+        el.style.display=el.style.display==='none'?'block':'none';
+      ">Raw JSON ▾</div>
+      <pre id="raw-json" style="display:none;font-size:10px;color:var(--sub);
+           background:rgba(0,0,0,.3);padding:8px;border-radius:6px;
+           overflow-x:auto;white-space:pre-wrap;word-break:break-all;
+           max-height:200px;overflow-y:auto">${esc(rawJson)}</pre>
+    </div>`;
+
+  renderDetail(html);
+  node.select();
+  document.getElementById('close-btn').style.display='flex';
+
+  // ── Also post the full node data to the chat host so it can render a detail card ──
+  const fullNode = d.raw || {
+    id:    d.id,
+    label: d.label,
+    type:  d.type,
+    description: d.desc,
+    properties:  d.props,
+  };
+  window.parent.postMessage({ type: 'NODE_SELECTED', payload: { node: fullNode } }, '*');
+}
+
+// ── Edge detail panel ─────────────────────────────────────────────────────────
+function showEdgeDetail(edge){
+  const d   = edge.data();
+  const src = edge.source().data('label');
+  const tgt = edge.target().data('label');
+
+  function esc(s){ return String(s).replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function prettyKey(k){ return k.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase()); }
+
+  const skipKeys = new Set(['id','source','target','rel','props']);
+  const allProps = Object.entries(d.props||{}).filter(([k])=> !skipKeys.has(k));
+
+  let html = `
+    <div class="detail-section">Relationship</div>
+    <div class="node-title" style="font-size:16px;color:#00b4d8">${esc(d.rel)}</div>
+    <div style="margin-top:8px;padding:10px;background:rgba(0,0,0,.3);border-radius:8px">
+      <div style="font-size:12px;color:var(--sub);margin-bottom:4px">From</div>
+      <div style="font-size:13px;color:var(--text);font-weight:600">${esc(src)}</div>
+      <div style="font-size:18px;color:var(--teal);margin:4px 0;text-align:center">↓</div>
+      <div style="font-size:12px;color:var(--sub);margin-bottom:4px">To</div>
+      <div style="font-size:13px;color:var(--text);font-weight:600">${esc(tgt)}</div>
+    </div>`;
+
+  if(allProps.length){
+    html += `<div><div class="detail-section">Edge Properties</div><div class="prop-grid">`;
+    allProps.forEach(([k,v])=>{
+      if(v === null || v === undefined || v === '') return;
+      html += `<div class="prop-k">${prettyKey(k)}</div><div class="prop-v">${esc(String(v))}</div>`;
+    });
+    html += `</div></div>`;
+  }
+
+  renderDetail(html);
+  edge.select();
+  document.getElementById('close-btn').style.display='flex';
+}
+
+function renderDetail(html){
+  const inner = document.getElementById('detail-inner');
+  inner.innerHTML = html;
+  document.getElementById('detail').classList.add('open');
+}
+
+function closeDetail(){
+  document.getElementById('detail').classList.remove('open');
+  document.getElementById('close-btn').style.display='none';
+  if(cy) cy.elements().unselect();
+}
+
+// ── Receive data from AppRenderer / host ─────────────────────────────────────
+// Cancel the fallback timer as soon as ANY message arrives.
+let _fallbackTimer = null;
+
+window.addEventListener('message', function(e){
+  if(!e.data) return;
+  const d = e.data;
+
+  // Both message formats supported
+  if(d.type==='TOOL_INIT' || d.type==='mcpui:init'){
+    clearTimeout(_fallbackTimer);   // live data is coming — kill the mock timer
+    const result = d.toolResult || d.result;
+    if(result) tryLoad(result);
+  }
+});
+
+function tryLoad(result){
+  try{
+    let text = result;
+    // AppRendererHost wraps result as { content:[{type:'text',text:'...'}] }
+    if(result && result.content && Array.isArray(result.content)){
+      text = result.content.find(c=>c.type==='text')?.text || '{}';
+    }
+    const data = typeof text==='string' ? JSON.parse(text) : text;
+
+    // If the server returned an error JSON, surface it
+    if(data.error && !data.nodes){
+      document.getElementById('loader-msg').textContent = '⚠ ' + data.error;
+      document.getElementById('loader').style.display = 'flex';
+      return;
+    }
+
+    buildGraph(data);
+  } catch(err){
+    document.getElementById('loader-msg').textContent = 'Failed to parse graph: ' + err.message;
+    document.getElementById('loader').style.display = 'flex';
+  }
+}
+
+// ── Fallback demo data — only if NO message arrives within 5s ────────────────
+// In the chat app postMessage arrives in <100ms. This only fires in standalone
+// preview (e.g. opening graph.html directly in a browser).
+_fallbackTimer = setTimeout(()=>{
+  if(!cy){
+    document.getElementById('loader-msg').textContent = 'No data received — showing demo';
+    buildGraph({
+      nodes:[
+        {id:'br1',label:'Anti-Bribery Policy',      type:'BusinessRules',description:'Group-wide anti-bribery framework',   properties:{entity_type:'Policy',   category:'BusinessRules',domain:'Compliance'}},
+        {id:'ob1',label:'Reporting Obligation',      type:'Obligations',  description:'Mandatory suspicious activity reporting', properties:{entity_type:'Obligation',category:'Obligations', jurisdiction:'UK'}},
+        {id:'ob2',label:'Due Diligence Requirement', type:'Obligations',  description:'CDD for high-risk clients',               properties:{entity_type:'Obligation',category:'Obligations', risk_level:'High'}},
+        {id:'pr1',label:'KYC Onboarding',            type:'Processes',    description:'Know-Your-Customer verification',         properties:{entity_type:'Process',   category:'Processes',    owner:'Compliance'}},
+        {id:'pr2',label:'Transaction Monitoring',    type:'Processes',    description:'Real-time transaction screening',         properties:{entity_type:'Process',   category:'Processes',    automation:'Auto'}},
+        {id:'ct1',label:'Access Controls',           type:'Controls',     description:'Role-based access management',            properties:{entity_type:'Control',   category:'Controls',     control_type:'Preventive'}},
+        {id:'ct2',label:'Audit Trail Logging',       type:'Controls',     description:'Immutable log of all actions',            properties:{entity_type:'Control',   category:'Controls',     control_type:'Detective'}},
+      ],
+      edges:[
+        {source:'br1',target:'ob1',relationship:'REQUIRES', properties:{link_strength:'strong'}},
+        {source:'br1',target:'ob2',relationship:'REQUIRES', properties:{link_strength:'strong'}},
+        {source:'ob1',target:'pr1',relationship:'TRIGGERS', properties:{link_strength:'medium'}},
+        {source:'ob2',target:'pr1',relationship:'TRIGGERS', properties:{link_strength:'medium'}},
+        {source:'pr1',target:'ct1',relationship:'USES',     properties:{link_strength:'medium'}},
+        {source:'pr2',target:'ct2',relationship:'GENERATES',properties:{link_strength:'strong'}},
+        {source:'br1',target:'pr2',relationship:'MANDATES', properties:{link_strength:'strong'}},
+      ],
+      metadata:{source:'Demo data (standalone preview)', node_count:7, edge_count:7}
+    });
+  }
+}, 5000);   // 5 seconds — only fires when opened standalone, never in the chat
+</script>
+</body>
+</html>

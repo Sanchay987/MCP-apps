@@ -1,0 +1,305 @@
+{
+  "kpmg_quarterly_summary": {
+    "period": "Q1 2024",
+    "client": "KPMG Global",
+    "summary": {
+      "total_revenue": 8500000000,
+      "total_expenses": 6800000000,
+      "net_income": 1700000000,
+      "profit_margin": 20.0,
+      "growth_rate": 12.5
+    },
+    "revenue_by_service": [
+      {
+        "service": "Audit",
+        "revenue": 3400000000,
+        "percentage": 40,
+        "growth": 8.5,
+        "trend": "up"
+      },
+      {
+        "service": "Tax & Legal",
+        "revenue": 2550000000,
+        "percentage": 30,
+        "growth": 15.2,
+        "trend": "up"
+      },
+      {
+        "service": "Advisory",
+        "revenue": 2125000000,
+        "percentage": 25,
+        "growth": 18.7,
+        "trend": "up"
+      },
+      {
+        "service": "Other Services",
+        "revenue": 425000000,
+        "percentage": 5,
+        "growth": -2.3,
+        "trend": "down"
+      }
+    ],
+    "key_metrics": [
+      {
+        "metric": "Client Satisfaction",
+        "value": 92,
+        "unit": "%",
+        "change": 3.5,
+        "status": "excellent"
+      },
+      {
+        "metric": "Employee Utilization",
+        "value": 78,
+        "unit": "%",
+        "change": 2.1,
+        "status": "good"
+      },
+      {
+        "metric": "New Client Acquisition",
+        "value": 145,
+        "unit": "clients",
+        "change": 12.0,
+        "status": "excellent"
+      },
+      {
+        "metric": "Project Delivery On-Time",
+        "value": 89,
+        "unit": "%",
+        "change": 4.2,
+        "status": "good"
+      }
+    ],
+    "regional_performance": [
+      {
+        "region": "Americas",
+        "revenue": 3825000000,
+        "percentage": 45,
+        "growth": 10.5
+      },
+      {
+        "region": "EMEA",
+        "revenue": 2975000000,
+        "percentage": 35,
+        "growth": 14.2
+      },
+      {
+        "region": "Asia Pacific",
+        "revenue": 1700000000,
+        "percentage": 20,
+        "growth": 16.8
+      }
+    ],
+    "alerts": [
+      {
+        "type": "warning",
+        "message": "Other Services revenue declined 2.3% - review service portfolio",
+        "priority": "medium"
+      },
+      {
+        "type": "success",
+        "message": "Advisory growth exceeds target by 8.7%",
+        "priority": "low"
+      }
+    ],
+    "metadata": {
+      "generated_at": "2024-03-31T23:59:59Z",
+      "currency": "USD",
+      "data_source": "KPMG Financial System",
+      "report_type": "quarterly_summary"
+    }
+  },
+  "client_engagement_summary": {
+    "period": "Q1 2024",
+    "client": "TechCorp Inc",
+    "engagement_id": "ENG-2024-001",
+    "summary": {
+      "total_revenue": 2500000,
+      "total_expenses": 1800000,
+      "net_income": 700000,
+      "profit_margin": 28.0,
+      "budget_variance": 5.2
+    },
+    "revenue_by_service": [
+      {
+        "service": "Cloud Security Assessment",
+        "revenue": 1500000,
+        "percentage": 60,
+        "hours_billed": 3000,
+        "trend": "up"
+      },
+      {
+        "service": "Compliance Audit",
+        "revenue": 750000,
+        "percentage": 30,
+        "hours_billed": 1500,
+        "trend": "stable"
+      },
+      {
+        "service": "Training & Support",
+        "revenue": 250000,
+        "percentage": 10,
+        "hours_billed": 500,
+        "trend": "up"
+      }
+    ],
+    "key_metrics": [
+      {
+        "metric": "Team Utilization",
+        "value": 85,
+        "unit": "%",
+        "change": 5.0,
+        "status": "excellent"
+      },
+      {
+        "metric": "Client Satisfaction",
+        "value": 95,
+        "unit": "%",
+        "change": 2.0,
+        "status": "excellent"
+      },
+      {
+        "metric": "Deliverables On-Time",
+        "value": 92,
+        "unit": "%",
+        "change": 3.5,
+        "status": "excellent"
+      },
+      {
+        "metric": "Budget Adherence",
+        "value": 95,
+        "unit": "%",
+        "change": -5.2,
+        "status": "good"
+      }
+    ],
+    "regional_performance": [
+      {
+        "region": "North America",
+        "revenue": 2500000,
+        "percentage": 100,
+        "growth": 15.5
+      }
+    ],
+    "alerts": [
+      {
+        "type": "success",
+        "message": "Client satisfaction increased to 95% - excellent performance",
+        "priority": "low"
+      },
+      {
+        "type": "info",
+        "message": "Engagement approaching final phase - schedule review meeting",
+        "priority": "medium"
+      }
+    ],
+    "metadata": {
+      "generated_at": "2024-03-31T23:59:59Z",
+      "currency": "USD",
+      "data_source": "KPMG Engagement System",
+      "report_type": "engagement_summary"
+    }
+  },
+  "tax_compliance_dashboard": {
+    "period": "FY 2024",
+    "client": "Global Retail Corp",
+    "engagement_id": "TAX-2024-045",
+    "summary": {
+      "total_revenue": 1800000,
+      "total_expenses": 1350000,
+      "net_income": 450000,
+      "profit_margin": 25.0,
+      "budget_variance": -2.1
+    },
+    "revenue_by_service": [
+      {
+        "service": "Transfer Pricing",
+        "revenue": 900000,
+        "percentage": 50,
+        "hours_billed": 1800,
+        "trend": "up"
+      },
+      {
+        "service": "Tax Compliance",
+        "revenue": 540000,
+        "percentage": 30,
+        "hours_billed": 1080,
+        "trend": "stable"
+      },
+      {
+        "service": "Tax Advisory",
+        "revenue": 360000,
+        "percentage": 20,
+        "hours_billed": 720,
+        "trend": "up"
+      }
+    ],
+    "key_metrics": [
+      {
+        "metric": "Compliance Accuracy",
+        "value": 99.5,
+        "unit": "%",
+        "change": 0.5,
+        "status": "excellent"
+      },
+      {
+        "metric": "Regulatory Risk Score",
+        "value": 15,
+        "unit": "score",
+        "change": -5.0,
+        "status": "excellent"
+      },
+      {
+        "metric": "Filing Timeliness",
+        "value": 100,
+        "unit": "%",
+        "change": 0.0,
+        "status": "excellent"
+      },
+      {
+        "metric": "Tax Savings Achieved",
+        "value": 3500000,
+        "unit": "USD",
+        "change": 15.0,
+        "status": "excellent"
+      }
+    ],
+    "regional_performance": [
+      {
+        "region": "North America",
+        "revenue": 720000,
+        "percentage": 40,
+        "growth": 8.5
+      },
+      {
+        "region": "Europe",
+        "revenue": 630000,
+        "percentage": 35,
+        "growth": 12.3
+      },
+      {
+        "region": "Asia Pacific",
+        "revenue": 450000,
+        "percentage": 25,
+        "growth": 18.7
+      }
+    ],
+    "alerts": [
+      {
+        "type": "success",
+        "message": "Achieved $3.5M in tax savings for client - 15% above target",
+        "priority": "low"
+      },
+      {
+        "type": "info",
+        "message": "New regulations in EU require review - schedule consultation",
+        "priority": "high"
+      }
+    ],
+    "metadata": {
+      "generated_at": "2024-03-31T23:59:59Z",
+      "currency": "USD",
+      "data_source": "KPMG Tax System",
+      "report_type": "tax_dashboard"
+    }
+  }
+}
