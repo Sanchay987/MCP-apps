@@ -244,7 +244,6 @@ List policy categories
 
 ## Data Model — Cosmos DB
 
-**Graph:** `regkg-graph-dev`
 **Vertices:** ~100
 **Categories:** `BusinessRules`, `Obligations`, `Processes`, `Controls`
 
