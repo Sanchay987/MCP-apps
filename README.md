@@ -1,107 +1,215 @@
-# MCP Apps - KPMG POC
+# MCP Apps — Generative UI Proof of Concept
 
-**Model Context Protocol + Generative UI Demonstration**
+A proof of concept demonstrating how the **Model Context Protocol (MCP)** can be combined with **Generative UI** to let an AI chat interface automatically render structured tool responses as rich, interactive components.
 
-A proof-of-concept showcasing how MCP (Model Context Protocol) enables AI chat interfaces to automatically render structured data as interactive visual components.
+The repository contains **two independent implementations** of the same idea:
 
----
+| Folder | Approach | Description |
+|---|---|---|
+| `server/` + `frontend/` | **Client-driven UI** | Backend returns structured JSON. Frontend has hardcoded React components per tool. |
+| `newMethod/` | **Server-driven UI (MCP Apps standard — SEP-1865)** | Backend bundles the HTML widget alongside the tool result. Frontend is generic — it renders whatever the server sends. |
 
-## 🎯 What This Demonstrates
-
-**The Big Idea:** When AI tools return structured data, the frontend automatically renders them as rich, interactive UI components - not just text.
-
-### Three Types of Visualizations:
-
-1. **📊 Financial Dashboards** - Revenue, metrics, alerts (mock data)
-2. **🔗 Knowledge Graphs** - Cloud security, audit methodology (mock data)
-3. **🏛️ Regulatory Policies** - Live data from Azure Cosmos DB Gremlin API ✨
-
-**Key Feature:** Same chat interface, different visualizations based on data structure.
+Both implementations share the same data sources (mock JSON + live Azure Cosmos DB Gremlin graph) but illustrate different architectural philosophies.
 
 ---
 
-## ✅ Current Status (Updated 2026-05-19)
+## What This Demonstrates
 
-**Day 2 - COMPLETE ✅**
-- ✅ Backend MCP server with 12 tools
-- ✅ Frontend chat interface with pattern-based tool selection
-- ✅ Generative UI (automatic visualization rendering)
-- ✅ **LIVE Cosmos DB integration with UI buttons** (NEW!)
-- ✅ End-to-end working: query → tool → visualization
+The core idea: **when a tool returns structured data, the chat interface should render it as an interactive UI component — not as text.**
 
-**Day 3 - TODO**
-- ⏳ Containerization (Docker)
-- ⏳ Architecture diagrams
-- ⏳ Pros/cons analysis
-- ⏳ Executive presentation deck
+Three visualization categories are showcased:
+
+- **Financial dashboards** — revenue summaries, metrics, alerts (mock data)
+- **Knowledge graphs** — cloud security, audit methodology (mock data)
+- **Regulatory policy graphs** — live data from Azure Cosmos DB Gremlin API
+
+The same chat surface adapts its rendering to the shape of the data, allowing a single conversational interface to host many domain-specific views.
 
 ---
 
-## 🚀 Quick Start
+## Architecture
 
-### Prerequisites
+### Implementation 1 — Client-Driven UI (`server/` + `frontend/`)
 
-- Python 3.14+ (virtual environment in `.venv/`)
-- Node.js 18+ (for frontend)
-- Azure Cosmos DB account (for live data)
+```
+User query
+    ↓
+Pattern matcher (frontend)
+    ↓
+MCP client over SSE
+    ↓
+MCP server (localhost:3001)
+    ↓
+Tool execution (Python)
+    ↓
+Structured JSON response
+    ↓
+Component dispatcher (frontend)
+    ↓
+Hardcoded React visualization
+```
 
-### Start Everything
+The frontend owns the rendering layer. Each tool maps to a specific React component selected at runtime.
+
+### Implementation 2 — Server-Driven UI (`newMethod/`)
+
+```
+User query
+    ↓
+Chat router (frontend)
+    ↓
+Next.js API proxy → MCP SDK over SSE
+    ↓
+MCP server (localhost:3002)
+    ↓
+Tool returns text result + ui:// resource URI
+    ↓
+AppRendererHost fetches HTML widget
+    ↓
+Widget rendered in sandboxed iframe
+    ↓
+postMessage bridge for interaction
+```
+
+The server owns the rendering layer. Each tool ships its own self-contained HTML widget, so the same tool works in **any MCP-compliant host** (Claude Desktop, ChatGPT, VS Code, MCP Inspector, etc.) without writing host-specific code.
+
+---
+
+## Project Structure
+
+```
+POC_MCP_APPS/
+│
+├── server/                          # Client-driven backend (port 3001)
+│   ├── mcp_server_web.py            # Main MCP server (SSE transport)
+│   ├── mcp_server_enterprise.py     # Alternative stdio transport
+│   └── tools/
+│       ├── knowledge_graph.py       # Mock knowledge graph
+│       ├── financial_summary.py     # Mock financial dashboard
+│       ├── gremlin_cosmos.py        # Live Cosmos DB Gremlin tool
+│       └── risk_wizard.py           # Risk assessment tool
+│
+├── frontend/                        # Client-driven Next.js app (port 3000)
+│   ├── app/chat/page.tsx            # Main chat interface
+│   ├── components/generative-ui/    # Hardcoded visualization components
+│   │   ├── ComponentDispatcher.tsx
+│   │   ├── KnowledgeGraph.tsx
+│   │   └── FinancialDashboard.tsx
+│   └── lib/
+│       ├── mcp-client.ts            # MCP SSE client
+│       └── types.ts
+│
+├── newMethod/                       # Server-driven MCP Apps implementation
+│   ├── server/                      # Python MCP server (port 3002)
+│   │   ├── server.py                # Entry point
+│   │   ├── mcp_apps.py              # MCP Apps standard helper
+│   │   ├── tools/                   # Tool registrations
+│   │   ├── ui/                      # Self-contained HTML widgets
+│   │   └── cosmos/gremlin_client.py # Cosmos DB client
+│   └── frontend/                    # Standalone Next.js chat (port 3003)
+│       ├── app/chat/page.tsx
+│       ├── app/api/mcp/             # Server-side MCP proxy
+│       └── components/AppRendererHost.tsx
+│
+├── RESTART_SERVERS.sh               # Restart both servers (Implementation 1)
+├── START_work.sh                    # Start helper
+├── .env                             # Cosmos DB credentials (not in git)
+├── .env.example                     # Credentials template
+├── requirements.txt                 # Python dependencies
+├── pyproject.toml
+└── uv.lock
+```
+
+---
+
+## Prerequisites
+
+- **Python 3.14+** with a virtual environment (`.venv/`)
+- **Node.js 18+**
+- **Azure Cosmos DB** account with Gremlin API enabled (for live data)
+- Environment variables defined in `.env` (see `.env.example`)
+
+---
+
+## Quick Start
+
+### Implementation 1 — Client-Driven UI
 
 ```bash
-# Single command to start both servers
+# One-command start
 ./RESTART_SERVERS.sh
+
+# Or manually
+.venv/bin/python3 server/mcp_server_web.py     # Terminal 1
+cd frontend && npm run dev                      # Terminal 2
 ```
 
-Then open: **http://localhost:3000/chat**
+Open **http://localhost:3000/chat**
 
-### Manual Start (Two Terminals)
+### Implementation 2 — Server-Driven UI (`newMethod/`)
 
-**Terminal 1 - Backend:**
 ```bash
-.venv/bin/python3 server/mcp_server_web.py
+cd newMethod/server && .venv/bin/python3 server.py   # Terminal 1
+cd newMethod/frontend && npm run dev                  # Terminal 2
 ```
 
-**Terminal 2 - Frontend:**
-```bash
-cd frontend
-npm run dev
-```
+Open **http://localhost:3003/chat**
+
+See `newMethod/QUICKSTART.md` for full instructions.
 
 ---
 
-## 🎮 How to Use
+## Available Tools
 
-### Click UI Buttons (Easiest)
+### Implementation 1 (`server/`)
 
-**Mock Data Examples:**
-- 📊 **KPMG Financial** - Quarterly revenue summary
-- 📊 **Client Engagement** - TechCorp engagement metrics
-- 🔗 **Cloud Security** - Cloud infrastructure security graph
-- 🔗 **Audit** - Audit methodology and standards
+**Utility**
+- `check_system_health` — OS, CPU, memory stats
+- `calculate` — basic arithmetic
+- `greet_user` — personalized greeting
 
-**Live Cosmos DB Examples (NEW!):**
-- 🏛️ **Business Rules (Live)** - Top-level regulatory policies
-- 📋 **Obligations (Live)** - Compliance requirements
-- 🔍 **Search: Bribery (Live)** - Search regulatory policies
-- 📚 **List Categories (Live)** - Available policy types
+**Knowledge Graph (mock)**
+- `query_enterprise_knowledge_graph`
+- `list_available_knowledge_topics`
+- `summarize_knowledge_topic`
 
-### Or Type Queries
+**Financial Dashboard (mock)**
+- `query_financial_dashboard`
+- `list_available_financial_reports`
+- `summarize_financial_report`
 
-**Financial Dashboards:**
+**Regulatory Policies (live Cosmos DB)**
+- `cosmosdb_query_regulatory_policies` — query by vertex label
+- `cosmosdb_list_policy_categories` — list available labels
+- `cosmosdb_search_policies` — keyword search
+
+### Implementation 2 (`newMethod/`)
+
+| Tool | Trigger | Widget |
+|---|---|---|
+| `calculator` | "open the calculator" | Interactive number pad |
+| `cosmos_graph_live` | "show regulatory graph" | Live Cytoscape graph from Cosmos DB |
+| `start_risk_wizard` | "start risk assessment" | 5-step assessment wizard |
+
+---
+
+## Example Queries
+
+**Financial dashboards**
 ```
-Show me KPMG quarterly summary
-Show me client engagement summary
+Show me the quarterly summary
+Show me the client engagement summary
 List financial reports
 ```
 
-**Knowledge Graphs (Mock):**
+**Knowledge graphs (mock)**
 ```
 Show me cloud security
 Show me audit methodology
 List available topics
 ```
 
-**Regulatory Policies (Live Cosmos DB):**
+**Regulatory policies (live)**
 ```
 Show me regulatory BusinessRules
 Show me regulatory Obligations
@@ -109,337 +217,125 @@ Show me policies about Bribery
 List policy categories
 ```
 
-**Other Tools:**
-```
-What's the system health?
-Calculate 42 × 17
-Hello, my name is Sanchay
-```
-
 ---
 
-## 📁 Project Structure
+## Technology Stack
 
-```
-POC_MCP_APPS/
-├── server/
-│   ├── mcp_server_web.py                  # Main MCP server (SSE transport)
-│   ├── mcp_server_enterprise.py           # Alternative stdio server
-│   └── tools/
-│       ├── knowledge_graph.py             # Mock knowledge graph tool
-│       ├── financial_summary.py           # Mock financial dashboard tool
-│       └── gremlin_cosmos.py              # Live Cosmos DB Gremlin tool ⭐
-│
-├── frontend/
-│   ├── app/
-│   │   ├── chat/
-│   │   │   └── page.tsx                   # Main chat interface ⭐
-│   │   └── test-graph/
-│   │       └── page.tsx                   # Test page for components
-│   ├── components/generative-ui/
-│   │   ├── ComponentDispatcher.tsx        # Routes data to components
-│   │   ├── KnowledgeGraph.tsx             # Graph visualization
-│   │   └── FinancialDashboard.tsx         # Dashboard visualization
-│   └── lib/
-│       ├── mcp-client.ts                  # MCP SSE client
-│       └── types.ts                       # TypeScript types
-│
-├── START_DAY2_BLOCK3.sh                   # Start script ⭐
-├── RESTART_SERVERS.sh                     # Convenience restart script ⭐
-│
-├── .env                                   # Cosmos DB credentials (not in git)
-├── .env.example                           # Template for credentials
-├── requirements.txt                       # Python dependencies
-└── frontend/package.json                  # Node dependencies
-```
-
----
-
-## 📚 Documentation
-
-### Getting Started
-- **[QUICK_START.md](QUICK_START.md)** - Fast setup guide
-- **[COSMOS_DB_QUICK_REFERENCE.md](COSMOS_DB_QUICK_REFERENCE.md)** - Quick troubleshooting ⭐ NEW
-
-### Implementation Details
-- **[DAY2_BLOCK3_COMPLETE.md](DAY2_BLOCK3_COMPLETE.md)** - Day 2 completion summary
-- **[COSMOS_DB_UI_INTEGRATION_COMPLETE.md](COSMOS_DB_UI_INTEGRATION_COMPLETE.md)** - Latest updates ⭐ NEW
-- **[GREMLIN_SETUP.md](GREMLIN_SETUP.md)** - Cosmos DB Gremlin setup
-- **[SERVER_ARCHITECTURE.md](SERVER_ARCHITECTURE.md)** - Backend architecture
-
-### Testing & Troubleshooting
-- **[TEST_WITH_INSPECTOR.md](TEST_WITH_INSPECTOR.md)** - MCP Inspector usage
-- **[HOW_TO_TEST_BLOCK3.txt](HOW_TO_TEST_BLOCK3.txt)** - Testing guide
-
----
-
-## 🔧 Recent Updates (2026-05-19)
-
-### ✅ Live Cosmos DB UI Integration
-
-**Problem Solved:** Live Cosmos DB tools were working in backend but not accessible from UI.
-
-**Changes Made:**
-1. ✅ Added 4 UI buttons for live Cosmos DB queries
-2. ✅ Added pattern matching for regulatory/policy queries
-3. ✅ Fixed asyncio event loop conflict in Gremlin client
-4. ✅ Updated startup script to use virtual environment Python
-5. ✅ Created comprehensive documentation
-
-**Result:** Users can now click buttons to see live regulatory policy graphs from Azure Cosmos DB!
-
-See full details: [COSMOS_DB_UI_INTEGRATION_COMPLETE.md](COSMOS_DB_UI_INTEGRATION_COMPLETE.md)
-
----
-
-## 🏗️ Architecture
-
-### Data Flow
-
-```
-User Query
-    ↓
-Pattern Matching (frontend)
-    ↓
-MCP Client (SSE transport)
-    ↓
-MCP Server (localhost:3001)
-    ↓
-Tool Execution (Python)
-    ↓
-Structured JSON Response
-    ↓
-ComponentDispatcher (frontend)
-    ↓
-Appropriate Visualization Component
-    ↓
-Interactive UI in Chat
-```
-
-### Technology Stack
-
-**Backend:**
+**Backend**
 - FastMCP (Model Context Protocol framework)
 - Python 3.14
 - Uvicorn + Starlette (SSE transport)
-- gremlinpython (Azure Cosmos DB client)
-- psutil (system health)
+- `gremlinpython` (Azure Cosmos DB client)
+- `psutil` (system metrics)
 
-**Frontend:**
-- Next.js 15
-- React 19
+**Frontend**
+- Next.js 15 with React 19
 - TypeScript
 - TailwindCSS
-- react-force-graph-2d (graph visualization)
-- @modelcontextprotocol/sdk (MCP client)
+- `react-force-graph-2d` (Implementation 1)
+- Cytoscape.js (Implementation 2 widget)
+- `@modelcontextprotocol/sdk`
 
-**Data Sources:**
-- Mock JSON files (financial, knowledge graph)
-- Azure Cosmos DB Gremlin API (regulatory policies)
-
----
-
-## 🎯 Available Tools (12 Total)
-
-### Day 1 - Basic Tools (3)
-1. `check_system_health` - OS, CPU, memory stats
-2. `calculate` - Basic arithmetic
-3. `greet_user` - Personalized greeting
-
-### Day 2 - Enterprise Tools (6)
-
-**Knowledge Graph (Mock):**
-4. `query_enterprise_knowledge_graph` - Cloud security, audit topics
-5. `list_available_knowledge_topics` - Available topics
-6. `summarize_knowledge_topic` - Topic metadata
-
-**Financial Dashboard (Mock):**
-7. `query_financial_dashboard` - Revenue, metrics, alerts
-8. `list_available_financial_reports` - Available reports
-9. `summarize_financial_report` - Report metadata
-
-### Day 2 - Live Cosmos DB Tools (3) ⭐ NEW UI ACCESS
-
-**Regulatory Policies (Live):**
-10. `cosmosdb_query_regulatory_policies` - Query by label (BusinessRules, Obligations, etc.)
-11. `cosmosdb_list_policy_categories` - List vertex labels
-12. `cosmosdb_search_policies` - Search by keyword
+**Data sources**
+- Mock JSON fixtures (financial + knowledge graph)
+- Azure Cosmos DB Gremlin API (regulatory policy graph)
 
 ---
 
-## 🧪 Testing
+## Data Model — Cosmos DB
 
-### Verify Everything Works
+**Graph:** `regkg-graph-dev`
+**Vertices:** ~100
+**Categories:** `BusinessRules`, `Obligations`, `Processes`, `Controls`
 
-```bash
-# 1. Test Cosmos DB connection
-.venv/bin/python3 server/tools/gremlin_cosmos.py
+Each vertex carries 5W1H metadata (`why`, `what`, `who`, `where`, `when`, `how`) along with the originating document name and page number for traceability.
 
-# 2. Start MCP server
-.venv/bin/python3 server/mcp_server_web.py
+Sample entries:
+- `Economic_Crime_Prevention_Policy`
+- `Anti-Bribery_Legislation_Compliance`
+- `Economic_Crime_Risk_Management_Process`
 
-# 3. In another terminal, start frontend
-cd frontend && npm run dev
+---
 
-# 4. Open http://localhost:3000/chat
+## Security & Configuration
 
-# 5. Click all UI buttons and verify they work
+- Credentials live in `.env` and are excluded from version control via `.gitignore`.
+- CORS is restricted to `localhost:3000` / `localhost:3003` for the POC.
+- No authentication layer is included — this is a demonstration build, not a production deployment.
+
+Required environment variables (see `.env.example`):
+
+```
+COSMOS_DB_ENDPOINT
+COSMOS_DB_PRIMARY_KEY
+COSMOS_DB_DATABASE_NAME
+COSMOS_DB_CONTAINER_NAME
+COSMOS_DB_GREMLIN_USERNAME
 ```
 
-### Expected Results
-
-**Mock Data:**
-- Cloud Security → Shows 8 nodes, 11 edges
-- Audit → Shows methodology graph
-- KPMG Financial → Shows revenue dashboard
-
-**Live Cosmos DB:**
-- Business Rules (Live) → Shows 10+ nodes from Cosmos DB
-- Obligations (Live) → Shows compliance requirements
-- Search: Bribery (Live) → Shows anti-bribery policies
-- List Categories (Live) → Shows ["BusinessRules", "Obligations", "Processes", "Controls"]
-
 ---
 
-## 🐛 Troubleshooting
+## Troubleshooting
 
-### Servers won't start
-
+**Ports already in use**
 ```bash
-# Check ports are free
-lsof -i :3000
-lsof -i :3001
-
-# Kill if needed
+lsof -i :3000 :3001 :3002 :3003
 pkill -f mcp_server_web
 pkill -f "next dev"
-
-# Restart
 ./RESTART_SERVERS.sh
 ```
 
-### Cosmos DB shows "0 entities"
-
-**Problem:** MCP server not using virtual environment  
-**Solution:**
+**Cosmos DB returns 0 entities**
+Usually caused by running the server outside the virtual environment. Always start with:
 ```bash
-# Use restart script (automatically uses venv)
-./RESTART_SERVERS.sh
-
-# Or start manually with venv Python
 .venv/bin/python3 server/mcp_server_web.py
 ```
 
-### Event loop error
-
-**Problem:** Old version of gremlin_cosmos.py without thread pool fix  
-**Solution:** Make sure you have latest code with ThreadPoolExecutor
-
-### Full documentation: [COSMOS_DB_QUICK_REFERENCE.md](COSMOS_DB_QUICK_REFERENCE.md)
+**Asyncio event loop conflicts**
+Ensure `gremlin_cosmos.py` runs Gremlin calls inside a `ThreadPoolExecutor` (already wired in the current code).
 
 ---
 
-## 📊 Cosmos DB Data
+## Verifying the Setup
 
-**Connection:** Azure Cosmos DB (regkg-db-dev)  
-**Graph:** regkg-graph-dev  
-**Total Vertices:** 100  
-**Categories:** BusinessRules, Obligations, Processes, Controls
-
-**Sample Policies:**
-- Economic_Crime_Prevention_Policy
-- Anti-Bribery_Legislation_Compliance  
-- Economic_Crime_Risk_Management_Process
-
-**Metadata:** Each node has 5W1H (why, what, who, where, when, how) + document source & page numbers
-
----
-
-## 🎭 Demo Script
-
-### 30-Second Demo
-
-1. "This is MCP Apps - AI chat with automatic visualization"
-2. Click **Cloud Security** → "Mock data renders as graph"
-3. Click **Business Rules (Live)** → "Now LIVE data from Azure Cosmos DB"
-4. Click node → "Rich metadata with document traceability"
-5. Click **Search: Bribery** → "Real-time search across policies"
-6. "Same interface, different data sources - that's the power of MCP!"
-
-### Key Messages
-
-- ✅ Natural language → Automatic visualization
-- ✅ Works with any LLM (pattern-based routing for POC)
-- ✅ Mock data + Live data in same interface
-- ✅ Production-ready architecture (HTTP/SSE, CORS, error handling)
-- ✅ Easy to extend (just add new tools)
-
----
-
-## 🔐 Security
-
-- `.env` file contains Cosmos DB credentials (not committed to git)
-- CORS configured for `localhost:3000` only
-- No authentication (POC only - add for production)
-
----
-
-## 🚀 Next Steps
-
-**Before Demo:**
-- [ ] Test all 12 tools
-- [ ] Verify live Cosmos DB queries work
-- [ ] Clear browser cache
-- [ ] Have Azure Portal open as backup
-
-**For Production:**
-- [ ] Add authentication & user sessions
-- [ ] Configure production CORS
-- [ ] Add database for message history
-- [ ] Integrate real LLM for intelligent tool selection
-- [ ] Add monitoring & logging
-- [ ] Containerize (Docker/Kubernetes)
-
----
-
-## 📞 Support
-
-**Issues?**
-1. Check [COSMOS_DB_QUICK_REFERENCE.md](COSMOS_DB_QUICK_REFERENCE.md)
-2. Review logs in terminal
-3. Verify .env credentials
-4. Test Cosmos DB connection directly
-
-**Emergency Reset:**
 ```bash
-./RESTART_SERVERS.sh
+# 1. Test live Cosmos DB connection
+.venv/bin/python3 server/tools/gremlin_cosmos.py
+
+# 2. Boot the backend
+.venv/bin/python3 server/mcp_server_web.py
+
+# 3. Boot the frontend
+cd frontend && npm run dev
+
+# 4. Open http://localhost:3000/chat and exercise each tool
 ```
 
----
-
-## 🎉 Status
-
-**✅ READY FOR DEMO**
-
-- ✅ All 12 tools working
-- ✅ Live Cosmos DB integration complete
-- ✅ UI buttons functional
-- ✅ Pattern matching accurate
-- ✅ No asyncio conflicts
-- ✅ Documentation complete
-
-**Last Updated:** 2026-05-19  
-**Demo Ready:** YES 🚀
+Expected outcomes:
+- Cloud Security → 8 nodes, 11 edges
+- KPMG-style financial dashboard renders revenue + alerts
+- Business Rules (live) → 10+ nodes streamed from Cosmos DB
+- Search "Bribery" → returns anti-bribery policy vertices
 
 ---
 
-## 📝 License
+## Roadmap
 
-Internal KPMG POC - Not for public distribution
+**Near term**
+- Containerization (Docker / Compose)
+- Architecture and sequence diagrams as living documentation
+- Comparative write-up: client-driven vs. server-driven UI trade-offs
+
+**Toward production**
+- Authentication and per-user sessions
+- Production-grade CORS and rate limiting
+- Persistent message history
+- Real LLM-driven tool selection (replacing the keyword router)
+- Observability: structured logging, tracing, metrics
+- Container orchestration (Kubernetes / managed service)
 
 ---
 
-## 👥 Credits
+## License
 
-Built for KPMG Leadership Demo  
-POC: Model Context Protocol + Generative UI Integration
+Internal proof of concept. Not for redistribution.
